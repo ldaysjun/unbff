@@ -1,5 +1,7 @@
 package unbff
 
-func main() {
+import "fmt"
 
+func main() {
+	fmt.Println("start")
 }
