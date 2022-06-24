@@ -14,10 +14,11 @@ func NodeList(db *xorm.Engine) ([]*model.Node, error) {
 	return nodes, nil
 }
 
+// SDLMetadataList sdl metadata list
 func SDLMetadataList(db *xorm.Engine) ([]*model.SDLMetadata, error) {
-	var sdls []*model.SDLMetadata
-	if err := db.Find(&sdls); err != nil {
+	var sdlList []*model.SDLMetadata
+	if err := db.Find(&sdlList); err != nil {
 		return nil, err
 	}
-	return sdls, nil
+	return sdlList, nil
 }

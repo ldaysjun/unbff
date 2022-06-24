@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	r, err := os.Open("/Users/jun/Desktop/work/dream/unbff/cmd/example.graphql")
+	r, err := os.Open("/Users/jun/Desktop/work/dream/unbff/cmd/test/example.graphql")
 	if err != nil {
 		panic(err)
 	}

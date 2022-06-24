@@ -1,7 +1,11 @@
+
 type Customer {
   email: String!
   id: Int!
   name: String!
+  orders: [Order]
+  order: Order
+
 }
 
 type Query {
@@ -13,6 +17,15 @@ type Query {
     )
 
   getCustomerById(id: Int!): Customer
+    @dbquery(
+      type: "mysql" 
+      query: """
+      select * from `customer` where `id` = ?
+      """
+      configuration: "mysql_config"
+    )
+
+  getCustomerById(id: Int!): Int!
     @dbquery(
       type: "mysql" 
       query: """
