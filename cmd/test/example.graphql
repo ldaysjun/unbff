@@ -1,38 +1,28 @@
-
 type Customer {
   email: String!
   id: Int!
   name: String!
-  orders: [Order]
-  order: Order
-
 }
 
 type Query {
-  getCustomerList: [Customer]
-    @dbquery(
-      type: "mysql", 
-      table: "customer", 
-      configuration: "mysql_config"
-    )
-
   getCustomerById(id: Int!): Customer
     @dbquery(
-      type: "mysql" 
+      type: "mysql"
       query: """
       select * from `customer` where `id` = ?
       """
       configuration: "mysql_config"
     )
+}
 
-  getCustomerById(id: Int!): Int!
-    @dbquery(
-      type: "mysql" 
-      query: """
-      select * from `customer` where `id` = ?
-      """
-      configuration: "mysql_config"
-    )
+
+
+{
+  getCustomerById(id:10){
+    email
+    id
+    name
+  }
 }
 
 

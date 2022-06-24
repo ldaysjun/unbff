@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/graphql/language/ast"
@@ -22,8 +23,9 @@ type processor struct {
 
 func newProcessor(conf *config.Config) *processor {
 	p := &processor{}
+	p.objects = make(map[string]map[string]*graphql.Object)
 	p.db = newProcessorDB(conf)
-	return nil
+	return p
 }
 
 func (p *processor) generateRootFields() (map[string]graphql.Fields, error) {
@@ -31,6 +33,10 @@ func (p *processor) generateRootFields() (map[string]graphql.Fields, error) {
 	if err != nil {
 		return nil, err
 	}
+	// TODO: DELETE
+	d, _ := json.Marshal(sdlList)
+	log.Printf("sdlList = [%s]\n", string(d))
+
 	fields := make(map[string]graphql.Fields)
 	p.appDataList = groupSDL(sdlList)
 	for app, metadataList := range p.appDataList {
@@ -55,8 +61,11 @@ func (p *processor) appFields(document *ast.Document, app string) graphql.Fields
 			continue
 		}
 		// generate graphql object, insert to objectSet
-		if _, ok := p.objects[name]; !ok {
+		if _, ok := p.objects[app][name]; !ok {
 			obj := p.generateGraphQLObject(app, node)
+			if _, ok := p.objects[app]; !ok {
+				p.objects[app] = make(map[string]*graphql.Object)
+			}
 			p.objects[app][obj.Name()] = obj
 		}
 	}
@@ -84,7 +93,15 @@ func (p *processor) generateQueryFields(app string, nodes []*ast.ObjectDefinitio
 }
 
 func (p *processor) resolve(params graphql.ResolveParams) (interface{}, error) {
-	return map[string]interface{}{}, nil
+	customer := map[string]interface{}{
+		"email": "ldaysjun@gmail.com",
+		"id":    1,
+		"name":  "ldaysjun",
+	}
+	if params.Info.FieldName == "getCustomerById" {
+		return customer, nil
+	}
+	return customer, nil
 }
 
 func (p *processor) generateGraphQLArgs(app string,
@@ -149,14 +166,14 @@ func (p *processor) generateGraphQLType(app string, t ast.Type) graphql.Type {
 	switch t.GetKind() {
 	case ListKind:
 		listType := t.(*ast.List)
-		return graphql.NewList(p.generateGraphQLType(app, listType))
+		return graphql.NewList(p.generateGraphQLType(app, listType.Type))
 	case NamedKind:
 		namedType := t.(*ast.Named)
 		v := namedType.Name.Value
 		return p.namedType(app, v)
 	case NonNullKind:
-		nonNullType := t.(ast.Type)
-		return p.generateGraphQLType(app, nonNullType)
+		nonNullType := t.(*ast.NonNull)
+		return p.generateGraphQLType(app, nonNullType.Type)
 	default:
 		return nil
 	}
@@ -188,6 +205,7 @@ func newProcessorDB(conf *config.Config) *xorm.Engine {
 		panic(err)
 	}
 	engine.SetMapper(core.SameMapper{})
+	engine.ShowSQL(true)
 	if err := engine.Ping(); err != nil {
 		panic(err)
 	}

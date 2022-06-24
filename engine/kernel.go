@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"github.com/graphql-go/graphql"
+	"github.com/ldaysjun/unbff/config"
 )
 
 type Params struct {
@@ -41,10 +42,14 @@ func (k *kernel) Do(ctx context.Context, p Params) *graphql.Result {
 type option func(k *kernel) error
 
 // NewKernel new kernel
-func NewKernel() (*kernel, error) {
+func NewKernel(conf *config.Config) (*kernel, error) {
 	k := &kernel{}
 	// strict order dependency
-	opts := []option{withNodePool(), withProcessor(), withSchema()}
+	opts := []option{
+		//withNodePool(),
+		withProcessor(conf),
+		withSchema(),
+	}
 	for _, opt := range opts {
 		if err := opt(k); err != nil {
 			return nil, err
@@ -64,9 +69,9 @@ func withNodePool() option {
 	}
 }
 
-func withProcessor() option {
+func withProcessor(conf *config.Config) option {
 	return func(k *kernel) error {
-		k.p = newProcessor(nil)
+		k.p = newProcessor(conf)
 		return nil
 	}
 }
@@ -74,7 +79,7 @@ func withProcessor() option {
 func withSchema() option {
 	return func(k *kernel) error {
 		k.schemas = make(map[string]graphql.Schema)
-		appFields, err := k.p.generateFields()
+		appFields, err := k.p.generateRootFields()
 		if err != nil {
 			return nil
 		}

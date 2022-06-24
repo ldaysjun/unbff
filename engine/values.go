@@ -6,9 +6,9 @@ const (
 )
 
 const (
-	NonNullKind = "nonNull"
-	NamedKind   = "named"
-	ListKind    = "list"
+	NonNullKind = "NonNull"
+	NamedKind   = "Named"
+	ListKind    = "List"
 
 	FloatType   = "Float"
 	StringType  = "String"
