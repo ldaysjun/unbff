@@ -4,25 +4,56 @@ type Customer {
   name: String!
 }
 
-type Query {
+type InboundOrder {
+  ksInboundOrder_createUser: String
+  ksInboundOrder_updateUser: String
+  ksInboundOrder_createTime: String
+  ksInboundOrder_updateTime: String
+  ksInboundOrder_id: String
+  ksInboundOrder_orderNo: String
+  ksInboundOrder_customerOrderNo: String
+  ksInboundOrder_lpnCode: String
+  ksInboundOrder_warehouseCode: String
+  ksInboundOrder_warehouseName: String
+  ksInboundOrder_customerCode: String
+  ksInboundOrder_customerName: String
+  ksInboundOrder_supplier: String
+  ksInboundOrder_inboundOrderType: String
+  ksInboundOrder_operationType: String
+  ksInboundOrder_inboundReceipt: String
+  ksInboundOrder_inboundOrderStatus: String
+  ksInboundOrder_version: String
+  ksInboundOrder_stationCode: String
+  ksInboundOrder_estimatedArrivalTime: String
+  ksInboundOrder_remark: String
+  ksInboundOrder_abnormalCn: String
+  ksInboundOrder_inboundOrderStatusCn: String
+  ksInboundOrder_stationCodes: [String ]
+  ksInboundOrder_ksInboundOrderContainerDetailIds: [String ]
+}
+
+
+type CustomerQuery {
   getCustomerById(id: Int!): Customer
-    @dbquery(
-      type: "mysql"
-      query: """
-      select * from `customer` where `id` = ?
-      """
-      configuration: "mysql_config"
-    )
+  @rest(
+      method: "POST",
+      contenttype: "application/json",
+      endpoint: "https://blog.csdn.net/wohu1104/article/details/106629308",
+      root : "$.data.results"
+  )
+  getInboundOrderList : [InboundOrder]
+  @rest(
+    method: "POST",
+    contenttype: "application/json",
+    endpoint: "http://172.18.81.114:9999/wms/inbound/searchInboundOrder?pageIndex=1&pageSize=20",
+    root : "$.data.results"
+    headers: "{\"Authorization\":\"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2NzQ4ODkzMDUsInVzZXJfbmFtZSI6IkFETUlOIiwiYXV0aG9yaXRpZXMiOlsiKjoqIiwiJCQkJiYmISEhUk9MRV9zdXBlcl9hZG1pbiJdLCJqdGkiOiI3OTc2YTg2ZS0wZDAwLTQwM2EtYTI1NS05OTY5YmI2NjUxMGMiLCJjbGllbnRfaWQiOiJhZG1pbl9jbGllbnQiLCJzY29wZSI6WyJhbGwiXX0.HKCjzGnqZ5IQIhUI0n04CMkTIYnncQwPA78r4IoL7dQ\"}"
+  )
 }
 
 
 
-{
-  getCustomerById(id:10){
-    email
-    id
-    name
-  }
-}
+
+
 
 

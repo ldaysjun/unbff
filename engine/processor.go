@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/graphql/language/ast"
@@ -33,10 +32,6 @@ func (p *processor) generateRootFields() (map[string]graphql.Fields, error) {
 	if err != nil {
 		return nil, err
 	}
-	// TODO: DELETE
-	d, _ := json.Marshal(sdlList)
-	log.Printf("sdlList = [%s]\n", string(d))
-
 	fields := make(map[string]graphql.Fields)
 	p.appDataList = groupSDL(sdlList)
 	for app, metadataList := range p.appDataList {
@@ -85,14 +80,32 @@ func (p *processor) generateQueryFields(app string, nodes []*ast.ObjectDefinitio
 			Type: p.generateGraphQLType(app, field.Type),
 			Args: p.generateGraphQLArgs(app, field.Arguments),
 			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
-				return p.resolve(params)
+				return p.resolve(params, field.Directives)
 			},
 		}
 	}
 	return fields
 }
 
-func (p *processor) resolve(params graphql.ResolveParams) (interface{}, error) {
+// TODO : need design universal resolve
+func (p *processor) resolve(params graphql.ResolveParams, directives []*ast.Directive) (interface{}, error) {
+	var n node
+	for _, directive := range directives {
+		if directive.Name.Value == "rest" {
+			decorate := httpNodeDecorate()
+			hn := &httpNode{}
+			for _, argument := range directive.Arguments {
+				value := argument.Name.Value
+				if function, ok := decorate[value]; ok {
+					v := fmt.Sprintf("%v", argument.Value.GetValue())
+					function(hn, v)
+				}
+			}
+			n = hn
+		}
+		return n.do()
+	}
+
 	customer := map[string]interface{}{
 		"email": "ldaysjun@gmail.com",
 		"id":    1,

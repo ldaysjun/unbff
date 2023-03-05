@@ -26,11 +26,11 @@ func ForTest() *Config {
 			DBCharset: "",
 		},
 		ProcessorDB: DB{
-			DBName:    "entry_task",
+			DBName:    "unbff",
 			DBHost:    "127.0.0.1",
 			DBPort:    3306,
-			DBUser:    "ldaysjun",
-			DBPwd:     "gv123456",
+			DBUser:    "root",
+			DBPwd:     "",
 			DBCharset: "utf8",
 		},
 	}

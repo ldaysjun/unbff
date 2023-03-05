@@ -10,6 +10,7 @@ import (
 const (
 	DefaultNodeType int = 0
 	DBNodeType          = 100
+	RestNodeType        = 101
 )
 
 type node interface {
@@ -18,6 +19,7 @@ type node interface {
 
 // createNode 创建节点
 func createNode(m *model.Node) (node, error) {
+	// TODO 连接资源池
 	switch m.NodeType {
 	case DBNodeType:
 		db, err := xorm.NewEngine("mysql", m.Source)
@@ -30,6 +32,8 @@ func createNode(m *model.Node) (node, error) {
 			return nil, err
 		}
 		return &dbNode{xdb: db, name: m.Name}, nil
+	case RestNodeType:
+		return nil, nil
 	default:
 		return nil, errors.New("")
 	}
