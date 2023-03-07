@@ -17,7 +17,7 @@ type Params struct {
 	VariableValues map[string]interface{}
 }
 
-type kernel struct {
+type Kernel struct {
 	// graphql schema set
 	schemas map[string]graphql.Schema
 
@@ -29,21 +29,53 @@ type kernel struct {
 }
 
 // Do execute query logic
-func (k *kernel) Do(ctx context.Context, p Params) *graphql.Result {
+func (k *Kernel) Do(ctx context.Context, p Params) *graphql.Result {
+	s := k.schemas[p.App]
 	params := graphql.Params{
-		Schema:         k.schemas[p.App],
+		Schema:         s,
 		RequestString:  p.DSL,
 		VariableValues: p.VariableValues,
 		Context:        ctx,
 	}
-	return graphql.Do(params)
+	r := graphql.Do(params)
+	return r
 }
 
-type option func(k *kernel) error
+// NewSchema execute query logic
+func (k *Kernel) NewSchema(ctx context.Context, p Params) graphql.Schema {
+	return k.schemas[p.App]
+}
+
+// NewSchemaWithApp new schema
+func (k *Kernel) NewSchemaWithApp(ctx context.Context, app string) (graphql.Schema, error) {
+	if v, ok := k.schemas[app]; ok {
+		return v, nil
+	}
+	return baseQuerySchema()
+}
+
+func baseQuerySchema() (graphql.Schema, error) {
+	return graphql.NewSchema(graphql.SchemaConfig{
+		Query: graphql.NewObject(graphql.ObjectConfig{
+			Name: "QUERY",
+			Fields: graphql.Fields{
+				"ping": &graphql.Field{
+					Type: graphql.String,
+					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+						return "ping ok", nil
+					},
+				},
+			},
+			Description: "ALL QUERY",
+		}),
+	})
+}
+
+type option func(k *Kernel) error
 
 // NewKernel new kernel
-func NewKernel(conf *config.Config) (*kernel, error) {
-	k := &kernel{}
+func NewKernel(conf *config.Config) (*Kernel, error) {
+	k := &Kernel{}
 	// strict order dependency
 	opts := []option{
 		//withNodePool(),
@@ -59,7 +91,7 @@ func NewKernel(conf *config.Config) (*kernel, error) {
 }
 
 func withNodePool() option {
-	return func(k *kernel) error {
+	return func(k *Kernel) error {
 		var err error
 		k.np, err = NewNodePool()
 		if err != nil {
@@ -70,20 +102,26 @@ func withNodePool() option {
 }
 
 func withProcessor(conf *config.Config) option {
-	return func(k *kernel) error {
+	return func(k *Kernel) error {
 		k.p = newProcessor(conf)
 		return nil
 	}
 }
 
 func withSchema() option {
-	return func(k *kernel) error {
+	return func(k *Kernel) error {
 		k.schemas = make(map[string]graphql.Schema)
 		appFields, err := k.p.generateRootFields()
 		if err != nil {
 			return nil
 		}
 		for app, fields := range appFields {
+			fields["ping"] = &graphql.Field{
+				Type: graphql.String,
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					return "ping ok", nil
+				},
+			}
 			if k.schemas[app], err = graphql.NewSchema(graphql.SchemaConfig{
 				Query: graphql.NewObject(graphql.ObjectConfig{
 					Name:        "QUERY",

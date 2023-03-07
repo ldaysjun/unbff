@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/graphql/language/ast"
@@ -9,6 +10,7 @@ import (
 	"github.com/ldaysjun/unbff/config"
 	"github.com/ldaysjun/unbff/dao"
 	"github.com/ldaysjun/unbff/model"
+	"html/template"
 	"log"
 	"xorm.io/core"
 	"xorm.io/xorm"
@@ -64,6 +66,7 @@ func (p *processor) appFields(document *ast.Document, app string) graphql.Fields
 			p.objects[app][obj.Name()] = obj
 		}
 	}
+
 	// last generated interface field
 	fields := p.generateQueryFields(app, queryNodes)
 	return fields
@@ -87,34 +90,69 @@ func (p *processor) generateQueryFields(app string, nodes []*ast.ObjectDefinitio
 	return fields
 }
 
-// TODO : need design universal resolve
-func (p *processor) resolve(params graphql.ResolveParams, directives []*ast.Directive) (interface{}, error) {
+// resolve : design universal resolve
+func (p *processor) resolve(params graphql.ResolveParams,
+	directives []*ast.Directive) (interface{}, error) {
 	var n node
 	for _, directive := range directives {
 		if directive.Name.Value == "rest" {
 			decorate := httpNodeDecorate()
-			hn := &httpNode{}
+			hn := &httpNode{
+				args: params.Args,
+			}
 			for _, argument := range directive.Arguments {
 				value := argument.Name.Value
 				if function, ok := decorate[value]; ok {
 					v := fmt.Sprintf("%v", argument.Value.GetValue())
-					function(hn, v)
+					function(hn, v, params.Args)
 				}
 			}
 			n = hn
 		}
-		return n.do()
+		result, err := n.do()
+		if err != nil {
+			return map[string]interface{}{}, err
+		}
+		if result == nil {
+			return map[string]interface{}{}, nil
+		}
+		return result, nil
 	}
+	return nil, nil
+}
 
-	customer := map[string]interface{}{
-		"email": "ldaysjun@gmail.com",
-		"id":    1,
-		"name":  "ldaysjun",
+// httpNodeDecorate http node decorate
+func httpNodeDecorate() map[string]func(n *httpNode, v string, args map[string]interface{}) {
+	return map[string]func(n *httpNode, v string, args map[string]interface{}){
+		"method": func(n *httpNode, v string, args map[string]interface{}) {
+			n.method = v
+		},
+		"contenttype": func(n *httpNode, v string, args map[string]interface{}) {
+			n.contentType = v
+		},
+		"endpoint": func(n *httpNode, v string, args map[string]interface{}) {
+			n.endpoint = v
+		},
+		"root": func(n *httpNode, v string, args map[string]interface{}) {
+			n.root = v
+		},
+		"headers": func(n *httpNode, v string, args map[string]interface{}) {
+			n.headers = v
+		},
+		"body": func(n *httpNode, v string, args map[string]interface{}) {
+			tmpl, err := template.New("tmpl").Parse(v)
+			if err != nil {
+				fmt.Println("create template failed, err:", err)
+				return
+			}
+			var tmplBytes bytes.Buffer
+			if err := tmpl.Execute(&tmplBytes, args); err != nil {
+				fmt.Println(err)
+				return
+			}
+			n.postBody = tmplBytes.String()
+		},
 	}
-	if params.Info.FieldName == "getCustomerById" {
-		return customer, nil
-	}
-	return customer, nil
 }
 
 func (p *processor) generateGraphQLArgs(app string,
@@ -199,6 +237,7 @@ func (p *processor) namedType(app string, v string) graphql.Type {
 		FloatType:   graphql.Float,
 		BooleanType: graphql.Boolean,
 	}
+
 	if t, ok := baseType[v]; ok {
 		return t
 	}

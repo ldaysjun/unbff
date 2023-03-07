@@ -2,12 +2,11 @@ package main
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/graphql-go/handler"
 	"github.com/ldaysjun/unbff/config"
 	"github.com/ldaysjun/unbff/engine"
-
-	_ "github.com/go-sql-driver/mysql"
+	"net/http"
 )
 
 func main() {
@@ -15,39 +14,45 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	s := `{getInboundOrderList {
-    		ksInboundOrder_createUser
-    		ksInboundOrder_updateUser
-    		ksInboundOrder_createTime
-    		ksInboundOrder_updateTime
-    		ksInboundOrder_id
-    		ksInboundOrder_orderNo
-    		ksInboundOrder_customerOrderNo
-   		 	ksInboundOrder_lpnCode
-    		ksInboundOrder_warehouseCode
-    		ksInboundOrder_warehouseName
-    		ksInboundOrder_customerCode
-    		ksInboundOrder_customerName
-    		ksInboundOrder_supplier
-    		ksInboundOrder_inboundOrderType
-    		ksInboundOrder_operationType
-    		ksInboundOrder_inboundReceipt
-   		 	ksInboundOrder_inboundOrderStatus
-    		ksInboundOrder_version
-    		ksInboundOrder_stationCode
-    		ksInboundOrder_estimatedArrivalTime
-    		ksInboundOrder_remark
-    		ksInboundOrder_abnormalCn
-    		ksInboundOrder_inboundOrderStatusCn
-    		ksInboundOrder_stationCodes
-    		ksInboundOrder_ksInboundOrderContainerDetailIds
-	}}`
-	r := kernel.Do(context.Background(), engine.Params{
-		DSL:            s,
-		App:            "app",
-		VariableValues: nil,
+	schema, err := kernel.NewSchemaWithApp(context.Background(), "app")
+	h := handler.New(&handler.Config{
+		Schema:   &schema,
+		Pretty:   true,
+		GraphiQL: true,
 	})
-
-	d, _ := json.Marshal(r)
-	fmt.Printf(string(d))
+	if err != nil {
+		panic(err)
+	}
+	http.Handle("/graphql", h)
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		panic(err)
+	}
 }
+
+//s := `{getInboundOrderList {
+//		ksInboundOrder_createUser
+//		ksInboundOrder_updateUser
+//		ksInboundOrder_createTime
+//		ksInboundOrder_updateTime
+//		ksInboundOrder_id
+//		ksInboundOrder_orderNo
+//		ksInboundOrder_customerOrderNo
+//	 	ksInboundOrder_lpnCode
+//		ksInboundOrder_warehouseCode
+//		ksInboundOrder_warehouseName
+//		ksInboundOrder_customerCode
+//		ksInboundOrder_customerName
+//		ksInboundOrder_supplier
+//		ksInboundOrder_inboundOrderType
+//		ksInboundOrder_operationType
+//		ksInboundOrder_inboundReceipt
+//	 	ksInboundOrder_inboundOrderStatus
+//		ksInboundOrder_version
+//		ksInboundOrder_stationCode
+//		ksInboundOrder_estimatedArrivalTime
+//		ksInboundOrder_remark
+//		ksInboundOrder_abnormalCn
+//		ksInboundOrder_inboundOrderStatusCn
+//		ksInboundOrder_stationCodes
+//		ksInboundOrder_ksInboundOrderContainerDetailIds
+//}}`
